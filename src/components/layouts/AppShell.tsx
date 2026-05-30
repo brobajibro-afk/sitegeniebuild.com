@@ -84,7 +84,7 @@ function SidebarInner({ onNav }: { onNav: () => void }) {
               className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary shrink-0 mb-2 hover:opacity-90 transition-opacity"
               aria-label="SiteGenie Home"
             >
-              <Sparkles className="w-4.5 h-4.5 text-primary-foreground" style={{ width: 18, height: 18 }} />
+              <img src="/logo-icon.svg" alt="SiteGenie" style={{ width: 24, height: 24 }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">SiteGenie</TooltipContent>
