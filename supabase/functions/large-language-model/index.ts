@@ -1,21 +1,17 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
-
   let contents: unknown[];
   let systemPrompt: string | undefined;
   try {
@@ -31,35 +27,35 @@ serve(async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  const apiKey = Deno.env.get("INTEGRATIONS_API_KEY");
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "Server configuration error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  // Build request body with optional system instruction
-  const requestBody: Record<string, unknown> = { contents };
+  // Convert Gemini-style contents to OpenAI-style messages
+  const messages = [];
   if (systemPrompt) {
-    requestBody.system_instruction = {
-      parts: [{ text: systemPrompt }],
-    };
+    messages.push({ role: "system", content: systemPrompt });
   }
-
-  const upstream = await fetch(
-    "https://app-by0e6zc8dh4x-api-VaOwP8E7dJqa.gateway.appmedo.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Gateway-Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    }
-  );
-
+  for (const content of contents as any[]) {
+    const role = content.role === "model" ? "assistant" : "user";
+    const text = content.parts?.map((p: any) => p.text).join("") || "";
+    messages.push({ role, content: text });
+  }
+  const upstream = await fetch("https://api.aicredits.in/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gemini-2.5-flash",
+      messages,
+      stream: true,
+    }),
+  });
   if (upstream.status === 429 || upstream.status === 402) {
     const errText = await upstream.text();
     return new Response(errText, {
@@ -67,14 +63,12 @@ serve(async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
   if (!upstream.ok || !upstream.body) {
     return new Response(
       JSON.stringify({ error: `Upstream error: ${upstream.status}` }),
       { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-
   return new Response(upstream.body, {
     headers: {
       ...corsHeaders,
