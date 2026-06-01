@@ -112,7 +112,7 @@ serve(async (req: Request): Promise<Response> => {
 
   console.log("Using model:", model);
 
-  const upstream = await fetch("https://api.aicredits.in/v1/chat/completions", {
+  const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({
