@@ -29,7 +29,7 @@ async function collectStreamText(
       onData: (data) => {
         try {
           const parsed = JSON.parse(data);
-          const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          const chunk = parsed?.choices?.[0]?.delta?.content ?? parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
           fullText += chunk;
         } catch { /* skip */ }
       },
@@ -179,7 +179,7 @@ Return ONLY valid JSON in a code block with all file contents.`;
       onData: (data) => {
         try {
           const parsed = JSON.parse(data);
-          const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          const chunk = parsed?.choices?.[0]?.delta?.content ?? parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
           if (chunk) {
             generatedText += chunk;
             const fileMatches = chunk.match(/"\/[^"]+\.(tsx?|jsx?|css|json)"/g);
@@ -286,7 +286,7 @@ Apply the requested changes and return ONLY the modified files as JSON.`;
       onData: (data) => {
         try {
           const parsed = JSON.parse(data);
-          const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          const chunk = parsed?.choices?.[0]?.delta?.content ?? parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
           if (chunk) {
             responseText += chunk;
             const fileMatches = chunk.match(/"\/[^"]+\.(tsx?|jsx?|css|json)"/g);
