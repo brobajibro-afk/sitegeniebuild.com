@@ -212,6 +212,7 @@ Return ONLY valid JSON in a code block with all file contents.`;
 
   // Step 5: Fix — parse files, retry once if needed
   onStepUpdate("fix", "running");
+  console.log("RAW RESPONSE:", generatedText.slice(0,500));
   let files = parseFilesFromResponse(generatedText);
 
   // Retry: ask LLM to re-emit just the JSON if first parse failed
