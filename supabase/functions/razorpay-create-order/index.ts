@@ -1,19 +1,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Token packages mapping: amountPaise → tokens
 const PACKAGES: Record<number, number> = {
-  30000: 600,    // ₹300
-  50000: 1000,   // ₹500
-  100000: 2000,  // ₹1000
-  500000: 9000,  // ₹5000
+  30000: 600,
+  50000: 1000,
+  100000: 2000,
+  500000: 9000,
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -22,12 +20,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate user via Supabase Auth
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -43,11 +41,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const keyId = Deno.env.get("RAZORPAY_KEY_ID")!;
-    const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET")!;
+    const keyId = Deno.env.get("RAZORPAY_KEY_ID") ?? "";
+    const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET") ?? "";
+
+    console.log("keyId prefix:", keyId.slice(0, 15), "hasSecret:", keySecret.length > 0);
+
+    if (!keyId || !keySecret) {
+      return new Response(JSON.stringify({ error: "Payment not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const credentials = btoa(`${keyId}:${keySecret}`);
 
-    // Create Razorpay order
     const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -64,7 +70,7 @@ Deno.serve(async (req) => {
 
     if (!rzpRes.ok) {
       const err = await rzpRes.text();
-      console.error("Razorpay error:", err);
+      console.error("Razorpay error:", err, "keyId:", keyId.slice(0, 15), "hasSecret:", keySecret.length > 0);
       return new Response(JSON.stringify({ error: "Failed to create order" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -72,11 +78,11 @@ Deno.serve(async (req) => {
 
     const order = await rzpRes.json();
 
-    // Store pending order in DB
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
     await supabaseAdmin.from("razorpay_orders").insert({
       user_id: user.id,
       razorpay_order_id: order.id,
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error(e);
+    console.error("Exception:", e);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

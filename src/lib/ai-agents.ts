@@ -24,7 +24,7 @@ async function collectStreamText(
     let fullText = "";
     sendStreamRequest({
       functionUrl: LLM_URL,
-      requestBody: { contents, systemPrompt },
+      requestBody: { contents, systemPrompt, model },
       supabaseAnonKey: SUPABASE_ANON_KEY,
       onData: (data) => {
         try {
@@ -117,7 +117,8 @@ export async function generateProject(
   onStreamChunk: (chunk: string) => void,
   signal?: AbortSignal,
   enabledPlugins: string[] = [],
-  framework: Framework = "react-ts"
+  framework: Framework = "react-ts",
+  model: string = "claude-sonnet-4-20250514"
 ): Promise<GenerateProjectResult> {
   // Step 1: Requirements
   onStepUpdate("requirements", "running");

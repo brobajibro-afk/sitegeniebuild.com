@@ -275,7 +275,7 @@ export function useWorkspace(projectId?: string | null) {
   );
 
   const sendMessage = useCallback(
-    async (userInput: string) => {
+    async (userInput: string, files?: unknown, model: string = "claude-sonnet-4-20250514") => {
       if (!userInput.trim() || state.isGenerating) return;
 
       const userMsg: ChatMessage = {

@@ -50,7 +50,7 @@ interface UploadedFile {
 interface AIChatPanelProps {
   messages: ChatMessage[];
   isGenerating: boolean;
-  onSendMessage: (message: string, files?: UploadedFile[]) => void;
+  onSendMessage: (message: string, files?: UploadedFile[], model?: string) => void;
   onCancel: () => void;
   tokenBalance?: number;
   onPublish?: () => void;
@@ -114,6 +114,7 @@ export function AIChatPanel({
 }: AIChatPanelProps) {
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [selectedModel, setSelectedModel] = useState("claude-sonnet-4-20250514");
   const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -198,7 +199,7 @@ export function AIChatPanel({
         : `Analyze the following files and help me build based on them:\n\n${fileContext}`;
     }
 
-    onSendMessage(message, uploadedFiles);
+    onSendMessage(message, uploadedFiles, selectedModel);
     setInput("");
     setUploadedFiles([]);
   };
@@ -239,6 +240,15 @@ export function AIChatPanel({
             {isGenerating ? "Generating…" : "Ready"}
           </p>
         </div>
+
+        {/* Model selector */}
+        <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="h-6 px-1 rounded border border-border bg-background text-[11px] text-foreground shrink-0 max-w-[110px]" disabled={isGenerating}>
+          <option value="claude-sonnet-4-20250514">Claude Sonnet</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="deepseek-chat">DeepSeek</option>
+          <option value="grok-3-mini">Grok 3 Mini</option>
+        </select>
 
         {/* Token balance badge */}
         <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 shrink-0">
