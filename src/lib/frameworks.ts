@@ -84,7 +84,7 @@ Use \\n for newlines, escape double quotes as \\" inside string values.`;
 ${base}
 
 CODING RULES:
-1. Pure React + TypeScript only — no external libraries. Use inline styles (no Tailwind).
+1. Use Tailwind CSS for ALL styling. Use lucide-react for icons. Make it visually stunning.
 2. Every component: default export. Entry: /App.tsx with \`export default function App()\`.
 3. Use useState, useEffect, proper TypeScript types. 100% functional — no TODOs.
 4. Beautiful modern UI: gradients, card shadows, smooth transitions, responsive flex/grid.
@@ -104,7 +104,7 @@ EXAMPLE:
 ${base}
 
 CODING RULES:
-1. Pure React with JavaScript (.jsx files) — no TypeScript, no external libs. Inline styles only.
+1. Use Tailwind CSS for ALL styling. Use lucide-react for icons. Make it visually stunning.
 2. Entry: /App.jsx with \`export default function App()\`. All files use .jsx extension.
 3. Use useState, useEffect, hooks. 100% functional components.
 4. Beautiful modern UI: gradients, shadows, responsive flex/grid.

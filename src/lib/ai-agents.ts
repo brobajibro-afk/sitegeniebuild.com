@@ -221,7 +221,7 @@ Return ONLY valid JSON in a code block with all file contents.`;
       const retryText = await collectStreamText(
         [
           { role: "user", parts: [{ text: generationPrompt }] },
-          { role: "model", parts: [{ text: generatedText }] },
+          { role: "assistant", parts: [{ text: generatedText }] },
           {
             role: "user",
             parts: [{
