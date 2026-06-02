@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const TOKEN_COST = 60;
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "anthropic/claude-sonnet-4-5";
 
 const QUALITY_BOOST = `You are an expert React/TypeScript developer. Generate a complete, beautiful, production-ready app.
 DESIGN RULES:
@@ -69,10 +69,10 @@ serve(async (req) => {
   console.log("API key exists:", !!apiKey);
   console.log("Messages count:", messages.length);
 
-  const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+  const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-    body: JSON.stringify({ model, messages, stream: true, max_tokens: 8000 }),
+    body: JSON.stringify({ model, messages, stream: true, max_tokens: 16000 }),
   });
 
   if (!upstream.ok || !upstream.body) {
