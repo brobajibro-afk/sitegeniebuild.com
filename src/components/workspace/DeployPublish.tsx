@@ -70,6 +70,7 @@ export function DeployPublish({
   const [isPublished, setIsPublished] = useState(false);
   const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(true);
   const [version, setVersion] = useState(1);
+  const [liveUrl, setLiveUrl] = useState("");
 
   // Export sub-tab
   const [exportTab, setExportTab] = useState<"vercel" | "github" | "zip">("vercel");
@@ -115,12 +116,30 @@ export function DeployPublish({
   // ── Platform publish (Miaoda hosting) ──
   const handlePublish = async () => {
     setIsPublishing(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setVersion((v) => v + 1);
-    setIsPublished(true);
-    setHasUnpublishedChanges(false);
-    setIsPublishing(false);
-    toast.success("Published successfully!", { description: liveUrl });
+    try {
+      const slug = projectName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 40) + "-" + Math.random().toString(36).slice(2, 7);
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("published_sites").upsert({
+        slug,
+        user_id: user?.id,
+        project_id: projectId || null,
+        files,
+        framework,
+        project_name: projectName,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "slug" });
+      if (error) throw error;
+      const url = `https://${slug}.sitegeniebuild.com`;
+      setLiveUrl(url);
+      setVersion((v) => v + 1);
+      setIsPublished(true);
+      setHasUnpublishedChanges(false);
+      setIsPublishing(false);
+      toast.success("Published successfully!", { description: url });
+    } catch (err) {
+      setIsPublishing(false);
+      toast.error("Publish failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
   };
 
   const handleUnpublish = () => {

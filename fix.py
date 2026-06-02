@@ -1,4 +1,4 @@
-// @ts-nocheck
+content = '''// @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -57,7 +57,7 @@ serve(async (req) => {
   if (!apiKey) return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const messages = [];
-  const combinedSystem = (systemPrompt || "") + "\n\n" + QUALITY_BOOST;
+  const combinedSystem = (systemPrompt || "") + "\\n\\n" + QUALITY_BOOST;
   messages.push({ role: "system", content: combinedSystem });
   for (const content of contents) {
     const role = content.role === "model" ? "assistant" : "user";
@@ -66,8 +66,6 @@ serve(async (req) => {
   }
 
   console.log("Using model:", model);
-  console.log("API key exists:", !!apiKey);
-  console.log("Messages count:", messages.length);
 
   const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
@@ -84,3 +82,9 @@ serve(async (req) => {
 
   return new Response(upstream.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
 });
+'''
+
+f = open('supabase/functions/large-language-model/index.ts', 'w', encoding='utf-8')
+f.write(content)
+f.close()
+print('Done')
