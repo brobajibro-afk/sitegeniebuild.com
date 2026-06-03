@@ -69,7 +69,18 @@ function tryParseJson(raw: string): unknown | null {
 export function parseFilesFromResponse(responseText: string): VirtualFileSystem | null {
   if (!responseText) return null;
 
-  // Strategy 1: every fenced code block (```json / ```tsx / ``` etc.)
+  // Strip markdown fences - Claude wraps in ```json
+  const fenceMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const cleaned = fenceMatch ? fenceMatch[1].trim() : responseText.trim();
+  if (cleaned.startsWith("{")) {
+    try {
+      const direct = JSON.parse(cleaned);
+      const directFiles = extractFilesFromObject(direct);
+      if (directFiles) return directFiles;
+    } catch { /* continue */ }
+  }
+
+  // Strategy 1: every fenced code block
   const codeBlockRe = /```(?:json|javascript|typescript|jsx|tsx)?\s*([\s\S]*?)```/g;
   let match: RegExpExecArray | null;
   while ((match = codeBlockRe.exec(responseText)) !== null) {
