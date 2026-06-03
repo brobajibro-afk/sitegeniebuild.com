@@ -80,7 +80,7 @@ serve(async (req) => {
     body: JSON.stringify({ model, messages, stream: false, max_tokens: 16000 }),
   });
 
-  if (!upstream.ok || !upstream.body) {
+  if (!upstream.ok) {
     const errText = await upstream.text();
     console.error("Upstream error:", upstream.status, errText);
     await supabase.from("profiles").update({ token_balance: profile.token_balance }).eq("id", user.id);
@@ -92,6 +92,8 @@ serve(async (req) => {
   await supabase.from("token_transactions").insert({ user_id: user.id, amount: -TOKEN_COST, type: "generation", description: `AI generation (${model})` });
 
   const data = await upstream.json();
+  console.log("Response data:", JSON.stringify(data).slice(0, 200));
   const text = data.choices[0]?.message?.content || '';
+  console.log("Extracted text length:", text.length);
   return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
