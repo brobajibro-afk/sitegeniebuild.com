@@ -28,7 +28,9 @@ async function collectStreamText(
       supabaseAnonKey: SUPABASE_ANON_KEY,
       onData: (data) => {
         try {
-          const parsed = JSON.parse(data);
+          let cleanData = data;
+          if (cleanData.startsWith('data: ')) cleanData = cleanData.slice(6);
+          const parsed = JSON.parse(cleanData);
           const chunk = parsed?.choices?.[0]?.delta?.content ?? parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
           fullText += chunk;
         } catch { /* skip */ }
