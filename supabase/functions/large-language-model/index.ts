@@ -50,8 +50,6 @@ serve(async (req) => {
   }
 
   const model = DEFAULT_MODEL;
-  await supabase.from("profiles").update({ token_balance: profile.token_balance - TOKEN_COST }).eq("id", user.id);
-  await supabase.from("token_transactions").insert({ user_id: user.id, amount: -TOKEN_COST, type: "generation", description: `AI generation (${model})` });
 
   const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -81,6 +79,10 @@ serve(async (req) => {
     await supabase.from("profiles").update({ token_balance: profile.token_balance }).eq("id", user.id);
     return new Response(JSON.stringify({ error: "Upstream error: " + upstream.status, detail: errText }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+
+  // Deduct credits only after successful response
+  await supabase.from("profiles").update({ token_balance: profile.token_balance - TOKEN_COST }).eq("id", user.id);
+  await supabase.from("token_transactions").insert({ user_id: user.id, amount: -TOKEN_COST, type: "generation", description: `AI generation (${model})` });
 
   return new Response(upstream.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
 });
