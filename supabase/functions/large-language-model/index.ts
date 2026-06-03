@@ -77,7 +77,7 @@ serve(async (req) => {
   const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-    body: JSON.stringify({ model, messages, stream: true, max_tokens: 16000 }),
+    body: JSON.stringify({ model, messages, stream: false, max_tokens: 16000 }),
   });
 
   if (!upstream.ok || !upstream.body) {
@@ -91,5 +91,7 @@ serve(async (req) => {
   await supabase.from("profiles").update({ token_balance: profile.token_balance - TOKEN_COST }).eq("id", user.id);
   await supabase.from("token_transactions").insert({ user_id: user.id, amount: -TOKEN_COST, type: "generation", description: `AI generation (${model})` });
 
-  return new Response(upstream.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+  const data = await upstream.json();
+  const text = data.choices[0]?.message?.content || '';
+  return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

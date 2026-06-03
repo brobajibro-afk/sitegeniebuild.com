@@ -21,24 +21,18 @@ async function collectStreamText(
   signal?: AbortSignal
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    let fullText = "";
-    sendStreamRequest({
-      functionUrl: LLM_URL,
-      requestBody: { contents, systemPrompt, model },
-      supabaseAnonKey: SUPABASE_ANON_KEY,
-      onData: (data) => {
-        try {
-          let cleanData = data;
-          if (cleanData.startsWith('data: ')) cleanData = cleanData.slice(6);
-          const parsed = JSON.parse(cleanData);
-          const chunk = parsed?.choices?.[0]?.delta?.content ?? parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          fullText += chunk;
-        } catch { /* skip */ }
+    const res = await fetch(LLM_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
       },
-      onComplete: () => resolve(fullText),
-      onError: reject,
+      body: JSON.stringify({ contents, systemPrompt, model }),
       signal,
     });
+    const data = await res.json();
+    const fullText = data.text || '';
+    resolve(fullText);
   });
 }
 
