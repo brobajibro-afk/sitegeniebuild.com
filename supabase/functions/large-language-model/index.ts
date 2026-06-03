@@ -11,15 +11,22 @@ const corsHeaders = {
 const TOKEN_COST = 60;
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4-5";
 
-const QUALITY_BOOST = `You are an expert React/TypeScript developer. Generate a complete, beautiful, production-ready app.
-DESIGN RULES:
-- Use Tailwind CSS for ALL styling
-- Use lucide-react for icons
-- Make it visually stunning with gradients, shadows, animations
+const QUALITY_BOOST = `You are a code generation API. You MUST respond with ONLY a valid JSON object. No explanation, no markdown, no backticks, no text before or after.
+
+The JSON must have file paths as keys and complete file contents as string values.
+
+REQUIRED FORMAT (respond with exactly this structure):
+{"/App.tsx": "complete file content here", "/components/Header.tsx": "complete file content here"}
+
+RULES:
+- Output ONLY the JSON object starting with { and ending with }
+- Use Tailwind CSS for styling
+- Use lucide-react for icons  
+- Make it beautiful with gradients and animations
 - Include realistic sample data
-- Make it fully functional with useState/useEffect
+- Fully functional with useState/useEffect
 - Mobile responsive
-- NO placeholder text`;
+- NEVER output anything except the JSON object`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
