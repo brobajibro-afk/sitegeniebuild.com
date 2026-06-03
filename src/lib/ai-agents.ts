@@ -31,8 +31,14 @@ async function collectStreamText(
       signal,
     });
     const data = await res.json();
-    const fullText = data.text || '';
-    resolve(fullText);
+    if (data.files && Object.keys(data.files).length > 0) {
+      console.log("✅ Files received from edge:", Object.keys(data.files).length);
+      resolve(JSON.stringify(data.files));
+    } else if (data.text) {
+      resolve(data.text);
+    } else {
+      resolve('');
+    }
   });
 }
 

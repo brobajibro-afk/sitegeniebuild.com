@@ -92,8 +92,19 @@ serve(async (req) => {
   await supabase.from("token_transactions").insert({ user_id: user.id, amount: -TOKEN_COST, type: "generation", description: `AI generation (${model})` });
 
   const data = await upstream.json();
-  console.log("Response data:", JSON.stringify(data).slice(0, 200));
   const text = data.choices[0]?.message?.content || '';
-  console.log("Extracted text length:", text.length);
-  return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  
+  // Extract JSON from markdown fences
+  let jsonText = text;
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) jsonText = fenceMatch[1];
+  
+  let files = {};
+  try {
+    files = JSON.parse(jsonText);
+  } catch (e) {
+    console.error("Failed to parse files:", e.message);
+  }
+  
+  return new Response(JSON.stringify({ files }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
