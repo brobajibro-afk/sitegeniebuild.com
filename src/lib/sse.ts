@@ -26,7 +26,7 @@ export function createSSEHook(options: SSEOptions): AfterResponseHook {
       onEvent: (event) => {
         if (!event.data) return;
         options.onEvent?.(event);
-        for (const chunk of event.data.split("\n")) options.onData(chunk);
+        options.onData(event.data);
       },
     });
 
