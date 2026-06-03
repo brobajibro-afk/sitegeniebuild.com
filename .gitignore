@@ -29,3 +29,5 @@ history/*.json
 .vite_cache
 .skills
 tasks
+fixgenerate.py
+sk-or-v1-39f25a988aefe8f3a62b5f4adc.txt
