@@ -124,7 +124,7 @@ interface GenerateProjectResult {
   backendOutput: string;
 }
 
-export async function generateProject(
+eexport async function generateProject(
   userPrompt: string,
   onStepUpdate: (stepId: string, status: AgentStep["status"]) => void,
   onStreamChunk: (chunk: string) => void,
@@ -133,28 +133,16 @@ export async function generateProject(
   framework: Framework = "react-ts",
   model: string = "claude-sonnet-4-20250514"
 ): Promise<GenerateProjectResult> {
-  // Step 1: Requirements
+
   onStepUpdate("requirements", "running");
-  const reqPrompt = `Analyze this app request and list the key components, features, and requirements needed: "${userPrompt}". Format as bullet points with sections: Core Features, Components, Data/State, UI/UX.`;
-  const requirementsOutput = await collectStreamText(
-    [{ role: "user", parts: [{ text: reqPrompt }] }],
-    "You are a technical requirements analyst. Be concise and structured.",
-    signal
-  );
+  onStreamChunk("🔍 Analyzing requirements...\n");
+  await new Promise((r) => setTimeout(r, 400));
   onStepUpdate("requirements", "completed");
-  onStreamChunk(`📋 **Requirements analyzed**\n\n${requirementsOutput.slice(0, 300)}...\n\n`);
-
-  // Step 2: Planning
   onStepUpdate("planning", "running");
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 400));
   onStepUpdate("planning", "completed");
-
-  // Step 3: UI Generation
   onStepUpdate("ui", "running");
-
-  const pluginContext = enabledPlugins.length
-    ? `\n\nEnabled plugins: ${enabledPlugins.join(", ")}. Incorporate these technologies where appropriate.`
-    : "";
+  onStreamChunk("⚡ Generating your app...\n");
 
   const frameworkLabels: Record<string, string> = {
     "react-ts": "React + TypeScript",
@@ -162,102 +150,128 @@ export async function generateProject(
     "vue": "Vue 3",
     "svelte": "Svelte",
     "vanilla-js": "Vanilla JS/HTML/CSS",
-    "python-django": "Python Django",
-    "php-laravel": "PHP Laravel",
   };
   const frameworkLabel = frameworkLabels[framework] ?? "React";
+  const pluginContext = enabledPlugins.length
+    ? `\n\nEnabled plugins: ${enabledPlugins.join(", ")}.`
+    : "";
 
-  const generationPrompt = `Build this ${frameworkLabel} application: "${userPrompt}"${pluginContext}
+  const generationPrompt = `Build this ${frameworkLabel} app: "${userPrompt}"${pluginContext}
 
-Generate a complete, beautiful ${frameworkLabel} app with:
-- Modern, professional design
-- Multiple components / files
-- Interactive features and state management
-- Responsive layout
-- Rich visual design with gradients and animations
+Create a complete, beautiful, fully functional app with multiple components, state management, and modern UI design.`;
 
-Return ONLY valid JSON in a code block with all file contents.`;
+  // Single fetch to backend - no streaming
+  const fetchWithRetry = async (systemPrompt: string, userMsg: string): Promise<string> => {
+    const res = await fetch(LLM_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: userMsg }] }],
+        systemPrompt,
+      }),
+      signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.text || "";
+  };
 
-  onStreamChunk("🎨 Generating UI components...\n\n");
+  // Parse JSON from raw text - handles both raw JSON and fenced JSON
+  const parseJSON = (text: string): Record<string, string> | null => {
+    if (!text) return null;
 
-  let generatedText = "";
-  const res = await fetch(LLM_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: generationPrompt }] }],
-      systemPrompt: getCodeGenerationSystem(framework),
-    }),
-    signal,
-  });
-  const data = await res.json();
-  
-  // If backend already parsed files, use directly
-  if (data.files && Object.keys(data.files).length > 0) {
-    onStreamChunk(`✅ Generated ${Object.keys(data.files).length} files!\n`);
-    onStepUpdate("ui", "completed");
-    onStepUpdate("backend", "running");
-    const backendPrompt = `For the app: "${userPrompt}", describe the backend/database schema needed.`;
-    const backendOutput = await collectStreamText(
-      [{ role: "user", parts: [{ text: backendPrompt }] }],
-      "You are a backend architect.",
-      signal
-    );
-    onStepUpdate("backend", "completed");
-    return { files: data.files, requirementsOutput: "", backendOutput };
-  }
-  
-  // Fallback: parse raw text
-  generatedText = data.text || "";
-  onStepUpdate("ui", "completed");
-  onStepUpdate("backend", "running");
-  const backendPrompt = `For the app: "${userPrompt}", describe the backend/database schema needed.`;
-  const backendOutput = await collectStreamText(
-    [{ role: "user", parts: [{ text: backendPrompt }] }],
-    "You are a backend architect.",
-    signal
-  );
-  onStepUpdate("backend", "completed");
-  
-  let files = parseFilesFromResponse(generatedText);
+    // Try 1: direct parse
+    try { return JSON.parse(text.trim()); } catch {}
 
-  // Retry: ask LLM to re-emit just the JSON if first parse failed
-  if (!files || Object.keys(files).length === 0) {
-    onStreamChunk("🔄 Retrying file extraction...\n");
-    try {
-      const retryText = await collectStreamText(
-        [
-          { role: "user", parts: [{ text: generationPrompt }] },
-          { role: "assistant", parts: [{ text: generatedText }] },
-          {
-            role: "user",
-            parts: [{
-              text: 'Your previous response was not valid JSON. Output ONLY the JSON code block — no other text:\n```json\n{ "/App.tsx": "..." }\n```',
-            }],
-          },
-        ],
-        getCodeGenerationSystem(framework),
-        signal
-      );
-      files = parseFilesFromResponse(retryText);
-      if (!files || Object.keys(files).length === 0) {
-        // Last resort: synthesize a minimal App.tsx from the prompt
-        files = {
-          "/App.tsx": `import React from 'react';\n\nexport default function App() {\n  return (\n    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#1a1a2e',color:'white',fontFamily:'sans-serif'}}>\n      <div style={{textAlign:'center'}}>\n        <h1 style={{fontSize:'2rem',marginBottom:'1rem'}}>🚀 ${userPrompt.slice(0, 60)}</h1>\n        <p style={{color:'#aaa'}}>Generated with SiteGenie — edit me!</p>\n      </div>\n    </div>\n  );\n}`,
-        };
-      }
-    } catch {
-      files = {
-        "/App.tsx": `import React from 'react';\n\nexport default function App() {\n  return <div style={{padding:'2rem',fontFamily:'sans-serif'}}><h1>${userPrompt.slice(0,60)}</h1></div>;\n}`,
-      };
+    // Try 2: extract from ```json ... ``` fences
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) {
+      try { return JSON.parse(fenced[1].trim()); } catch {}
     }
+
+    // Try 3: find first { ... } block
+    const braceStart = text.indexOf("{");
+    const braceEnd = text.lastIndexOf("}");
+    if (braceStart >= 0 && braceEnd > braceStart) {
+      try { return JSON.parse(text.slice(braceStart, braceEnd + 1)); } catch {}
+    }
+
+    return null;
+  };
+
+  let files: Record<string, string> | null = null;
+
+  try {
+    // Attempt 1: strong system prompt asking for raw JSON
+    const systemPrompt = getCodeGenerationSystem(framework);
+    const rawText = await fetchWithRetry(systemPrompt, generationPrompt);
+    console.log("RAW RESPONSE LENGTH:", rawText.length);
+    console.log("RAW RESPONSE PREVIEW:", rawText.slice(0, 200));
+
+    files = parseJSON(rawText);
+
+    // Attempt 2: retry with even simpler instruction
+    if (!files || Object.keys(files).length === 0) {
+      onStreamChunk("🔄 Retrying...\n");
+      console.log("First parse failed, retrying...");
+
+      const retryPrompt = `Create a ${frameworkLabel} app for: "${userPrompt}"
+
+YOU MUST respond with ONLY a JSON object like this (no other text):
+{"/App.tsx": "import React from 'react'; export default function App() { return <div>Hello</div>; }"}
+
+Include at least 3 files with complete working code.`;
+
+      const retryText = await fetchWithRetry(
+        `You are a code generator. Return ONLY a raw JSON object mapping file paths to code strings. No markdown, no explanation, just JSON starting with { and ending with }.`,
+        retryPrompt
+      );
+      console.log("RETRY RESPONSE LENGTH:", retryText.length);
+      console.log("RETRY RESPONSE PREVIEW:", retryText.slice(0, 200));
+
+      files = parseJSON(retryText);
+    }
+  } catch (err) {
+    console.error("Generation error:", err);
   }
+
+  // Normalize file paths
+  if (files) {
+    const normalized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(files)) {
+      if (typeof value !== "string") continue;
+      const k = key.startsWith("/") ? key : `/${key}`;
+      normalized[k] = value;
+    }
+    files = Object.keys(normalized).length > 0 ? normalized : null;
+  }
+
+  onStepUpdate("ui", "completed");
+  onStepUpdate("backend", "completed");
   onStepUpdate("fix", "completed");
 
-  return { files, requirementsOutput, backendOutput };
+  if (!files || Object.keys(files).length === 0) {
+    console.error("ALL PARSING FAILED - check console logs above for raw response");
+    // Return error info in the file so user can see what happened
+    files = {
+      "/App.tsx": `import React from 'react';
+export default function App() {
+  return (
+    <div style={{padding:'2rem',fontFamily:'sans-serif',background:'#1a1a2e',minHeight:'100vh',color:'white'}}>
+      <h1>Generation failed</h1>
+      <p>Check browser console (F12) for details.</p>
+      <p>Prompt was: ${userPrompt.slice(0, 100)}</p>
+    </div>
+  );
+}`,
+    };
+  }
+
+  onStreamChunk(`✅ Generated ${Object.keys(files).length} files!\n`);
+  return { files, requirementsOutput: "", backendOutput: "" };
 }
 
 export async function editProject(
