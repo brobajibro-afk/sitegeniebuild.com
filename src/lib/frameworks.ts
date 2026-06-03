@@ -67,13 +67,8 @@ export function getFrameworkConfig(id: Framework): FrameworkConfig {
 
 export function getCodeGenerationSystem(framework: Framework): string {
   const base = `OUTPUT FORMAT — STRICTLY REQUIRED:
-Your ENTIRE response must be ONE fenced code block containing valid JSON:
-\`\`\`json
-{
-  "/path/to/file": "complete file content here"
-}
-\`\`\`
-NEVER output anything outside the code block. NO explanations, NO markdown text, NO comments.
+Return ONLY a raw JSON object. No markdown fences, no backticks, no explanation.
+Start your response with { and end with }.
 JSON keys = file paths starting with "/". Values = complete file contents as strings.
 Use \\n for newlines, escape double quotes as \\" inside string values.`;
 

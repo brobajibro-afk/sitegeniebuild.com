@@ -11,23 +11,7 @@ const corsHeaders = {
 const TOKEN_COST = 60;
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4-5";
 
-const QUALITY_BOOST = `You are a code generation API. You MUST respond with ONLY a valid JSON object. No explanation, no markdown, no backticks, no text before or after.
-
-The JSON must have file paths as keys and complete file contents as string values.
-
-REQUIRED FORMAT (respond with exactly this structure):
-{"/App.tsx": "complete file content here", "/components/Header.tsx": "complete file content here"}
-
-RULES:
-- Output ONLY the JSON object starting with { and ending with }
-- Use Tailwind CSS for styling
-- Use lucide-react for icons  
-- Make it beautiful with gradients and animations
-- Include realistic sample data
-- Fully functional with useState/useEffect
-- Mobile responsive
-- NEVER output anything except the JSON object`;
-
+const QUALITY_BOOST = `Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.`;
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
