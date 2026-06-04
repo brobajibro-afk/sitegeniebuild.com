@@ -5,7 +5,7 @@ import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 const openrouter = createOpenRouter({
-  apiKey: "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",
+  apiKey: import.meta.env.VITE_OPENROUTER_KEY,
 });
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
