@@ -11,7 +11,7 @@ const openrouter = createOpenRouter({
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-const LLM_URL = `${SUPABASE_URL}/functions/v1/large-language-model`;
+const LLM_URL = `https://web-production-27b64.up.railway.app/ws/generate`;
 
 export const AGENT_STEPS: AgentStep[] = [
   { id: "requirements", name: "requirements", label: "Requirements Agent", status: "pending", description: "Analyzing your request..." },
