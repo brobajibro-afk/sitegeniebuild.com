@@ -1,0 +1,11 @@
+fastapi==0.136.3
+uvicorn==0.49.0
+crewai==0.11.2
+openai==1.109.1
+python-dotenv==1.2.2
+pydantic==2.13.4
+aiofiles==25.1.0
+httpx==0.28.1
+langchain==0.1.20
+langchain-openai==0.0.5
+tiktoken==0.3.3
