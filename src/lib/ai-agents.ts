@@ -168,21 +168,29 @@ Create a complete, beautiful, fully functional app with multiple components, sta
 
   // Single fetch to backend - no streaming
   const fetchWithRetry = async (systemPrompt: string, userMsg: string): Promise<string> => {
-    const res = await fetch(LLM_URL, {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://sitegeniebuild.com",
       },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: userMsg }] }],
-        systemPrompt,
+        model: "anthropic/claude-sonnet-4-5",
+        max_tokens: 16000,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMsg }
+        ],
       }),
       signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`OpenRouter error: ${res.status} ${err}`);
+    }
     const data = await res.json();
-    return data.text || "";
+    return data.choices?.[0]?.message?.content || "";
   };
 
   // Parse JSON from raw text - handles both raw JSON and fenced JSON
